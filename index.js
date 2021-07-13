@@ -1,32 +1,44 @@
-const PORT = process.env.PORT || 5000
-var http = require('http');//创建服务器的
-var fs = require('fs');
-//引入进来的是模块，模块中有方法，下一步就是使用方法
-//Node.js一个最主要的特点：执行的基本都是函数
- 
-//创建服务
-var myServer = http.createServer(function(req,res){
-    //req->请求变量：客户端请求服务器的
-    //res->响应变量:服务器要给客户端写回的变量
-    //前端页面应该给客户端显示，即写回去
-    //这之前应该先把文件内容读出来
- 
-    var html = fs.readFileSync('https://www.baidu.com');
- 
-    res.write(html);
- 
-    //结束写的操作
-    res.end();
- 
-})
- 
- 
-//服务端等着客户端请求需要做一个监听。通过创建的服务。
-//监听
-myServer.listen(PORT,function(err){
-    if(err){
-        console.log(err);
-        throw err;
-    }
-    console.log("服务器已开启。端口号为:5050");
-})
+const PORT = process.env.PORT || 5000 
+var http = require('http');
+var request_ = require('request');
+var urlencode2=require("urlencode2");
+var url=require('url');
+http.createServer(function (request, response) {
+    var arg1 = url.parse(request.url, true).query; 
+    var sn=arg1.sn;
+    var en=arg1.en;
+    var req_url="http://api.map.baidu.com/?qt=nav&c=131&sn=2%24%24%24%24%24%24%20"+
+          urlencode2(sn,'gbk')+"%24%240%24%24%24%24&en=2%24%24%24%24%24%24"+
+          urlencode2(en,'gbk')+"%24%240%24%24%24%24&sy=0&ie=utf-8&oue=1&fromproduct=jsapi&res=api&callback=BMap._rd._cbk54249";
+      request_.get({
+            url:req_url,
+            json:true
+        },
+        function(error, response_, body) {
+          if (!error && response_.statusCode == 200) {
+            var res=-1;
+            if(body){
+              res=body.split(',"toll":')[0];//time  s
+              res=res.split('"time":')[2];
+              console.log(res)
+              if(!res){
+                res=-1;
+              }
+              else{
+                res=res/60;
+              }
+            }
+            response.writeHead(200, {
+                "Content-Type": "text/html; charset=UTF-8",
+                'Access-Control-Allow-Origin':request.headers.origin
+            });
+            response.end(res+'\n');
+          }
+          else{
+            // console.log(error)
+          }
+        }
+    )
+}).listen(PORT);
+// 终端打印如下信息
+console.log('Server running at http://127.0.0.1:'+PORT);
